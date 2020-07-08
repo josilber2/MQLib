@@ -233,7 +233,7 @@ void GraphMetrics::GetClusteringData(std::vector<double>* output) {
   for (int i=0; i < n; ++i) {
     nodes.push_back(i);
   }
-  std::random_shuffle(nodes.begin(), nodes.end());
+  std::random_shuffle(nodes.begin(), nodes.end(), RNG());
   int num_try = std::min<int>(3 * ((int)log(n) + 1), n);
   
   // Compute the clustering coefficient for our selected nodes

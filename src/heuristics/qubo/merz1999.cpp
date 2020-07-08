@@ -25,7 +25,7 @@ Merz1999Solution::Merz1999Solution(const QUBOInstance& qi,
   for (int i = 0; i < N_; i++)
     genes[i] = i;
   // Pick random ordering of genes
-  std::random_shuffle(genes.begin(), genes.end());
+  std::random_shuffle(genes.begin(), genes.end(), RNG());
   int left_to_swap = half_hamming_distance;
   const std::vector<int>& a_genes = parent_a.get_assignments();
   const std::vector<int>& b_genes = parent_b.get_assignments();

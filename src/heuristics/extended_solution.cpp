@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <math.h>
 #include "heuristics/extended_solution.h"
+#include "util/random.h"
 
 ExtendedSolution::ExtendedSolution(int N, int init_assignment) :
   BaseSolution(N, init_assignment),
@@ -49,7 +50,7 @@ void ExtendedSolution::AllShuffle1Swap(int startpos) {
   for (int idx=startpos; idx < N_; ++idx) {
     indices.push_back(idx);
   }
-  std::random_shuffle(indices.begin(), indices.end());
+  std::random_shuffle(indices.begin(), indices.end(), RNG());
 
   // Take all profitable 1-moves, taking the first one we find when scanning the
   // nodes/variables sequentially.

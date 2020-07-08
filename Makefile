@@ -5,7 +5,7 @@ BUILDDIR = .build
 SRCDIR = src
 EXECUTABLE = bin/MQLib
 STATIC = bin/MQLib.a
-SRCS = $(shell find $(SRCDIR) -name "*.cpp")
+SRCS = $(shell find $(SRCDIR) -name "*.cpp" | grep -v "MQLib.cpp")
 OBJS = $(shell echo "$(SRCS)" | sed -e "s/ $(SRCDIR)/ $(BUILDDIR)/g" -e "s/^$(SRCDIR)/$(BUILDDIR)/g" -e "s/\.cpp/.o/g")
 DEPS = $(shell echo "$(OBJS)" | sed -e "s/\.o/.P/g")
 

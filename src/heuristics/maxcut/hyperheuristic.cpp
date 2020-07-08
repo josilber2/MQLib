@@ -22,12 +22,13 @@ bool MaxCutHyperheuristic::FileExists(const std::string& filename) {
 
 void MaxCutHyperheuristic::UpdateBestModel(std::string code, Prob problem,
                                            const std::vector<double>& metrics,
+					   const std::string& hhdata, 
                                            double* bestProbability,
                                            Prob* bestProblem,
                                            std::string* bestCode,
                                            int* numBest) {
   std::ostringstream fname;
-  fname << "hhdata/" << code << ".rf";
+  fname << hhdata << "/" << code << ".rf";
   std::string filename = fname.str();
   if (FileExists(filename)) {
     RandomForest rf(filename);
@@ -38,11 +39,12 @@ void MaxCutHyperheuristic::UpdateBestModel(std::string code, Prob problem,
       *bestProblem = problem;
       *bestCode = code;
       *numBest = 1;
-    } else if (probability == *bestProbability &&
-               Random::RandInt(0, *numBest) == *numBest) {
-      // Tied the best and selected by streaming algorithm
-      *bestProblem = problem;
-      *bestCode = code;
+    } else if (probability == *bestProbability) {
+      if (Random::RandInt(0, *numBest) == *numBest) {
+	// Tied the best and selected by streaming algorithm
+	*bestProblem = problem;
+	*bestCode = code;
+      }
       ++(*numBest);
     }
   }
@@ -93,8 +95,10 @@ MaxCutHyperheuristic::MaxCutHyperheuristic(const MaxCutInstance&mi,
                                            double runtime_limit,
                                            bool validation,
                                            MaxCutCallback *mc, int seed,
-                                           std::string* selected) :
+                                           std::string* selected,
+					   const std::string& hhdata) :
   MaxCutHeuristic(mi, runtime_limit, validation, mc) {
+
   // Step 1: Calculate graph metrics for this instance.
   GraphMetrics gm(mi);
   std::vector<double> metrics;
@@ -112,15 +116,15 @@ MaxCutHyperheuristic::MaxCutHyperheuristic(const MaxCutInstance&mi,
   std::vector<std::string> codes;
   factory.MaxCutHeuristicCodes(&codes);
   for (int i=0; i < codes.size(); ++i) {
-    UpdateBestModel(codes[i], MaxCut, metrics, &bestProbability, &bestProblem,
-                    &bestCode, &numBest);
+    UpdateBestModel(codes[i], MaxCut, metrics, hhdata, &bestProbability,
+		    &bestProblem, &bestCode, &numBest);
   }
 
   // Check the QUBO heuristics
   factory.QUBOHeuristicCodes(&codes);
   for (int i=0; i < codes.size(); ++i) {
-    UpdateBestModel(codes[i], QUBO, metrics, &bestProbability, &bestProblem,
-                    &bestCode, &numBest);
+    UpdateBestModel(codes[i], QUBO, metrics, hhdata, &bestProbability,
+		    &bestProblem, &bestCode, &numBest);
   }
   if (selected) {
     *selected = bestCode;

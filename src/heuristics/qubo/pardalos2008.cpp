@@ -91,7 +91,7 @@ void Pardalos2008QUBOSolution::TabuSearch
 	}
 
 	// Alg 2 Step 10: Randomly permute M
-	std::random_shuffle(M.begin(), M.end());
+	std::random_shuffle(M.begin(), M.end(), RNG());
 
 	// Alg 2 Steps 11-20: Go through the variables in the order of M,
 	// flipping if they're non-decreasing 1-moves and either allowed by the

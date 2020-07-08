@@ -257,7 +257,7 @@ Silberholz2015PS::Silberholz2015PS(const MaxCutInstance &mi,
   MaxCutPartialSolution(mi, heuristic) {
   std::vector<int> indices(N_);
   for (int i=0; i < N_; ++i) indices[i] = i;
-  std::random_shuffle(indices.begin(), indices.end());
+  std::random_shuffle(indices.begin(), indices.end(), RNG());
   for (int i=0; i < N_; ++i) {
     int idx = indices[i];
     double gNS = gainNS_[idx];

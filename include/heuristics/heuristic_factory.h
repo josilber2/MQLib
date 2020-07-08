@@ -45,6 +45,18 @@ class HeuristicFactory {
   void MaxCutHeuristicCodes(std::vector<std::string>* codes);
   void QUBOHeuristicCodes(std::vector<std::string>* codes);
 
+  // Get the Max-Cut and QUBO maps
+  typedef std::pair<MaxCutHeuristic*(*)(const MaxCutInstance& mi,
+                                        double runtime_limit,
+                                        bool validation, MaxCutCallback *mc),
+    std::string> MaxCutCreator;
+  std::map<std::string, MaxCutCreator> get_max_cut_map() const { return max_cut_map_; }
+  typedef std::pair<QUBOHeuristic*(*)(const QUBOInstance& mi,
+                                      double runtime_limit,
+                                      bool validation, QUBOCallback *qc),
+    std::string> QUBOCreator;
+  std::map<std::string, QUBOCreator> get_qubo_map() const { return qubo_map_; }
+  
   // Get the instance (it will be converted from a provided instance if it was
   // not provided and has not already been generated via conversion). Recipient
   // is not responsible for freeing memory from the result (and should not call
@@ -58,15 +70,7 @@ class HeuristicFactory {
 
  private:  
   // Mapping from heuristic names to creator functions
-  typedef std::pair<MaxCutHeuristic*(*)(const MaxCutInstance& mi,
-                                        double runtime_limit,
-                                        bool validation, MaxCutCallback *mc),
-    std::string> MaxCutCreator;
   std::map<std::string, MaxCutCreator> max_cut_map_;
-  typedef std::pair<QUBOHeuristic*(*)(const QUBOInstance& mi,
-                                      double runtime_limit,
-                                      bool validation, QUBOCallback *qc),
-    std::string> QUBOCreator;
   std::map<std::string, QUBOCreator> qubo_map_;
 };
 

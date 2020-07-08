@@ -9,7 +9,7 @@ class MaxCutHyperheuristic : public MaxCutHeuristic {
  public:
   MaxCutHyperheuristic(const MaxCutInstance&mi, double runtime_limit,
                        bool validation, MaxCutCallback *mc, int seed,
-                       std::string* selected);
+                       std::string* selected, const std::string& hhdata);
 
  private:
   enum Prob {
@@ -24,6 +24,7 @@ class MaxCutHyperheuristic : public MaxCutHeuristic {
   // identified so far, using a streaming algorithm to break ties randomly.
   void UpdateBestModel(std::string code, Prob problem,
                        const std::vector<double>& metrics,
+		       const std::string& hhdata,
                        double* bestProbability, Prob* bestProblem,
                        std::string* bestCode, int* numBest);
 };

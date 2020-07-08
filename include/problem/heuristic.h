@@ -27,6 +27,10 @@ class Heuristic {
   std::string History();
   virtual bool IsHistoryValid() = 0;
 
+  // Getters
+  std::vector<double> get_past_solution_values() const { return past_solution_values_; }
+  std::vector<double> get_past_solution_times() const { return past_solution_times_; }
+
   // Heuristic is an abstract class, so it should have a virtual destructor
   virtual ~Heuristic() {};
 

@@ -6,6 +6,7 @@
 #include "problem/instance.h"
 #include "problem/max_cut_instance.h"
 #include "problem/qubo_instance.h"
+#include "util/random.h"
 
 // Load instance from file
 MaxCutInstance::MaxCutInstance(const std::string& filename) {
@@ -58,7 +59,7 @@ void MaxCutInstance::AddQUBONonzero(int i, int j, double q_ij,
 // Shuffling the edge sets
 void MaxCutInstance::GetShuffledEdges(std::vector<std::pair<std::pair<int, int>, double> >* ret) const {
   *ret = all_edges_;
-  random_shuffle(ret->begin(), ret->end());
+  random_shuffle(ret->begin(), ret->end(), RNG());
 }
 
 bool SortCompare(const std::pair<std::pair<int, int>, double>& i,

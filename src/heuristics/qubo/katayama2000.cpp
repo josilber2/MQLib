@@ -38,7 +38,7 @@ Katayama2000QUBOSolution::Katayama2000QUBOSolution(const Katayama2000QUBOSolutio
 	identical.push_back(i);
       }
     }
-    std::random_shuffle(identical.begin(), identical.end());
+    std::random_shuffle(identical.begin(), identical.end(), RNG());
     for (int i=0; i < numFlip; ++i) {
       UpdateCutValues(identical[i]);
     }
@@ -66,7 +66,7 @@ void Katayama2000QUBOSolution::VariantKOpt() {
       for (int i=0; i < N_; ++i) {
 	RP[i] = i;
       }
-      std::random_shuffle(RP.begin(), RP.end());
+      std::random_shuffle(RP.begin(), RP.end(), RNG());
 
       // Fig 1 Step 1.2.2: Search all variables (regardless of whether they're
       // in C) in RP order, and flip a variable if doing so will improve best.
@@ -125,7 +125,7 @@ void Katayama2000QUBOSolution::Mutate() {
   for (int i=0; i < N_; ++i) {
     toflip[i] = i;
   }
-  std::random_shuffle(toflip.begin(), toflip.end());
+  std::random_shuffle(toflip.begin(), toflip.end(), RNG());
 
   // Flip selected bits
   for (int i=0; i < numFlip; ++i) {

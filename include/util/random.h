@@ -32,4 +32,12 @@ class Random {
 
 };
 
+// See https://stackoverflow.com/a/14221920/3093387 -- portable set the
+// random number generator for use in std::random_shuffle
+struct RNG {
+  int operator() (int n) {
+    return std::rand() / (1.0 + RAND_MAX) * n;
+  }
+};
+
 #endif
