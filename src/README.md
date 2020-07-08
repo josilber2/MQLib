@@ -353,10 +353,11 @@ The next step in adding a new metric is to edit the `GraphMetrics::AllMetrics` f
 
 ```
 // Compute proportion of edges that have the maximum weight
-struct timeval pmax_start;
-gettimeofday(&pmax_start, 0);
+auto pmax_start = std::chrono::steady_clock::now();
 double percent_max = GetPropMaxEdges();
-double pmax_time = GetTime(pmax_start);
+auto pmax_end = std::chrono::steady_clock::now();
+double pmax_time =
+  std::chrono::duration<double, std::milli>(pmax_end-pmax_start).count()/1000;
 ```
 
 Finally, this new metric and the runtime needed to compute it should be added to the end of the `*metrics` and `*runtimes` assignments at the end of the `GraphMetrics::AllMetrics` function. Further, the metric name should be added to the end of the `*names` assignment in `GraphMetrics::AllMetricNames`, and the runtime name should be added to the end of the `*names` assignment in `GraphMetrics::AllRuntimeTypes`.
@@ -410,8 +411,7 @@ The next step is to edit the `GraphMetrics::AllMetrics` function in [src/metrics
 
 ```
 // Metrics for proportion of a node's neighbors connected by edges with above-average weight.
-struct timeval above_avg_start;
-gettimeofday(&above_avg_start, 0);
+auto aa_start = std::chrono::steady_clock::now();
 std::vector<double> above_avg;
 PropAboveAverageEdges(&above_avg);
 double above_avg_min = above_avg[0];
@@ -423,6 +423,10 @@ double above_avg_log_abs_skew = above_avg[5];
 double above_avg_skew_positive = above_avg[6];
 double above_avg_const = above_avg[7];
 double above_avg_time = GetTime(above_avg_start);
+auto aa_end = std::chrono::steady_clock::now();
+double above_avg_time =
+  std::chrono::duration<double, std::milli>(aa_end-aa_start).count()/1000;
+
 ```
 
 In this code, we extract the eight summary statistics computed by the `GetSummary` function.

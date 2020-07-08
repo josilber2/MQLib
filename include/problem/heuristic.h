@@ -1,7 +1,7 @@
 #ifndef PROBLEM_HEURISTIC_H_
 #define PROBLEM_HEURISTIC_H_
 
-#include <sys/time.h>
+#include <chrono>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -39,7 +39,7 @@ class Heuristic {
   // them after the run is complete.
   bool validation_;
 
-  struct timeval start_time_;
+  std::chrono::time_point<std::chrono::steady_clock> start_time_;
   double best_;
   double runtime_limit_;
 

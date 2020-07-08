@@ -17,13 +17,6 @@ void Usage(ez::ezOptionParser& opt) {
   std::cout << usage;
 };
 
-double GetTime(const struct timeval& start) {
-  // Runtime in seconds since the passed start time
-  struct timeval end;
-  gettimeofday(&end, 0);
-  return (end.tv_sec - start.tv_sec) + 0.000001 * (end.tv_usec - start.tv_usec);
-}
-
 // The runtime limit according to instance size (may be overwritten on command
 // line).
 double RuntimeLimit(MaxCutInstance *mi, QUBOInstance *qi) {

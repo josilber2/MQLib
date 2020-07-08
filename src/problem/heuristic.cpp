@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <time.h>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <vector>
@@ -7,16 +7,15 @@
 
 Heuristic::Heuristic(double runtime_limit, bool validation) :
   validation_(validation),
+  start_time_(std::chrono::steady_clock::now()),
   best_(0.0),
-  runtime_limit_(runtime_limit) {
-  gettimeofday(&start_time_, 0);
-}
+  runtime_limit_(runtime_limit) {}
 
 double Heuristic::Runtime() {
-  struct timeval tv;
-  gettimeofday(&tv, 0);
-  double secs = (tv.tv_sec - start_time_.tv_sec) + 0.000001 *
-    (tv.tv_usec - start_time_.tv_usec);
+  auto curr_time = std::chrono::steady_clock::now();
+  double secs =
+    std::chrono::duration<double, std::milli>(curr_time-start_time_).count()/1000;
+    
   return secs;
 }
 

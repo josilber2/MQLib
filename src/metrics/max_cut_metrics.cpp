@@ -1,7 +1,7 @@
+#include <chrono>
 #include <math.h>
 #include <queue>
 #include <string.h>
-#include <sys/time.h>
 #include <algorithm>
 #include <iostream>
 #include <limits>
@@ -11,13 +11,6 @@
 
 GraphMetrics::GraphMetrics(const MaxCutInstance& mi) :
   mi_(mi) {}
-
-double GraphMetrics::GetTime(const struct timeval& start) {
-  // Runtime in seconds since the passed start time
-  struct timeval end;
-  gettimeofday(&end, 0);
-  return (end.tv_sec - start.tv_sec) + 0.000001 * (end.tv_usec - start.tv_usec);
-}
 
 void GraphMetrics::AllMetrics(std::vector<double>* metrics,
                               std::vector<double>* runtimes) {
@@ -29,8 +22,7 @@ void GraphMetrics::AllMetrics(std::vector<double>* metrics,
   double avg_degree = ((double)m)/n;
 
   // Local clustering coefficient statistics
-  struct timeval clust_start;
-  gettimeofday(&clust_start, 0);
+  auto t_start = std::chrono::steady_clock::now();
   std::vector<double> clustering;
   GetClusteringData(&clustering);
   double clust_min = clustering[0];
@@ -41,11 +33,12 @@ void GraphMetrics::AllMetrics(std::vector<double>* metrics,
   double clust_log_abs_skew = clustering[5];
   double clust_skew_positive = clustering[6];
   double clust_const = clustering[7];
-  double clust_time = GetTime(clust_start);
+  auto t_end = std::chrono::steady_clock::now();
+  double clust_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
 
   // Degree metrics
-  struct timeval degree_start;
-  gettimeofday(&degree_start, 0);
+  t_start = std::chrono::steady_clock::now();
   std::vector<double> degree_metrics;
   GetDegreeData(&degree_metrics);
   double deg_min = degree_metrics[0];
@@ -56,17 +49,19 @@ void GraphMetrics::AllMetrics(std::vector<double>* metrics,
   double deg_log_abs_skew = degree_metrics[5];
   double deg_skew_positive = degree_metrics[6];
   double deg_const = degree_metrics[7];
-  double degree_time = GetTime(degree_start);
+  t_end = std::chrono::steady_clock::now();
+  double degree_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
   // Compute percentage of edges that have positive weight
-  struct timeval ppos_start;
-  gettimeofday(&ppos_start, 0);
+  t_start = std::chrono::steady_clock::now();
   double percent_pos = GetPercentPos();
-  double ppos_time = GetTime(ppos_start);
+  t_end = std::chrono::steady_clock::now();
+  double ppos_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
   // Metrics for weights of graph
-  struct timeval weight_start;
-  gettimeofday(&weight_start, 0);
+  t_start = std::chrono::steady_clock::now();
   std::vector<double> weights;
   GetWeightData(&weights);
   double weight_min = weights[0];
@@ -77,11 +72,12 @@ void GraphMetrics::AllMetrics(std::vector<double>* metrics,
   double weight_log_abs_skew = weights[5];
   double weight_skew_positive = weights[6];
   double weight_const = weights[7];
-  double weight_time = GetTime(weight_start);
+  t_end = std::chrono::steady_clock::now();
+  double weight_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
   // First two eigenvalues of graph laplacian
-  struct timeval ev_start;
-  gettimeofday(&ev_start, 0);
+  t_start = std::chrono::steady_clock::now();
   std::pair<double,double> lap_evs = GetLaplacianTopEVs();
   double norm_ev1 = lap_evs.first / avg_degree;
   double norm_ev2 = lap_evs.second / avg_degree;
@@ -89,27 +85,31 @@ void GraphMetrics::AllMetrics(std::vector<double>* metrics,
   double log_norm_ev1 = log(std::min(norm_ev1, 1e10));
   double log_norm_ev2 = log(std::min(norm_ev2, 1e10));
   double log_ev_ratio = log(ev_ratio);
-  double ev_time  = GetTime(ev_start);
+  t_end = std::chrono::steady_clock::now();
+  double ev_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
 
   // Approximation of chromatic number of the graph
-  struct timeval chromatic_start;
-  gettimeofday(&chromatic_start, 0);
+  t_start = std::chrono::steady_clock::now();
   double chromatic = GetChromaticNumber();
-  double chromatic_time = GetTime(chromatic_start);
+  t_end = std::chrono::steady_clock::now();
+  double chromatic_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
   // Approximation of the diameter, radius, and eccentricity stats of graph
-  struct timeval disconnected_start;
-  gettimeofday(&disconnected_start, 0);
+  t_start = std::chrono::steady_clock::now();
   double disconnected = Disconnected();
-  double disconnected_time = GetTime(disconnected_start);
+  t_end = std::chrono::steady_clock::now();
+  double disconnected_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
-  struct timeval assortativity_start;
-  gettimeofday(&assortativity_start, 0);
+  t_start = std::chrono::steady_clock::now();
   double assortativity = DegreeAssortativity();
-  double assortativity_time = GetTime(assortativity_start);
+  t_end = std::chrono::steady_clock::now();
+  double assortativity_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
-  struct timeval avg_neighbor_deg_start;
-  gettimeofday(&avg_neighbor_deg_start, 0);
+  t_start = std::chrono::steady_clock::now();
   std::vector<double> avg_neighbor_deg;
   AverageNeighborDegree(&avg_neighbor_deg);
   double avg_neighbor_deg_min = avg_neighbor_deg[0];
@@ -120,10 +120,11 @@ void GraphMetrics::AllMetrics(std::vector<double>* metrics,
   double avg_neighbor_deg_log_abs_skew = avg_neighbor_deg[5];
   double avg_neighbor_deg_skew_positive = avg_neighbor_deg[6];
   double avg_neighbor_deg_const = avg_neighbor_deg[7];
-  double avg_neighbor_deg_time = GetTime(avg_neighbor_deg_start);
+  t_end = std::chrono::steady_clock::now();
+  double avg_neighbor_deg_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
-  struct timeval avg_deg_conn_start;
-  gettimeofday(&avg_deg_conn_start, 0);
+  t_start = std::chrono::steady_clock::now();
   std::vector<double> avg_deg_conn;
   AverageDegreeConnectivity(&avg_deg_conn);
   double avg_deg_conn_min = avg_deg_conn[0];
@@ -134,10 +135,11 @@ void GraphMetrics::AllMetrics(std::vector<double>* metrics,
   double avg_deg_conn_log_abs_skew = avg_deg_conn[5];
   double avg_deg_conn_skew_positive = avg_deg_conn[6];
   double avg_deg_conn_const = avg_deg_conn[7];
-  double avg_deg_conn_time = GetTime(avg_deg_conn_start);
+  t_end = std::chrono::steady_clock::now();
+  double avg_deg_conn_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
-  struct timeval core_start;
-  gettimeofday(&core_start, 0);
+  t_start = std::chrono::steady_clock::now();
   std::vector<double> cores_decomposition;
   CoresDecomposition(&cores_decomposition);
   double core_min = cores_decomposition[0];
@@ -148,12 +150,15 @@ void GraphMetrics::AllMetrics(std::vector<double>* metrics,
   double core_log_abs_skew = cores_decomposition[5];
   double core_skew_positive = cores_decomposition[6];
   double core_const = cores_decomposition[7];
-  double core_time = GetTime(core_start);
+  t_end = std::chrono::steady_clock::now();
+  double core_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
   
-  struct timeval mis_start;
-  gettimeofday(&mis_start, 0);
+  t_start = std::chrono::steady_clock::now();
   double mis = MaximalIndependentSet();
-  double mis_time = GetTime(mis_start);
+  t_end = std::chrono::steady_clock::now();
+  double mis_time =
+    std::chrono::duration<double, std::milli>(t_end-t_start).count()/1000;
 
   if (metrics) {
     *metrics = {clust_min, clust_max, clust_mean, clust_stdev,
