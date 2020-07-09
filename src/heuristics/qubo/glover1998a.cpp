@@ -1,4 +1,5 @@
 #include <math.h>
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include "heuristics/qubo/glover1998a.h"

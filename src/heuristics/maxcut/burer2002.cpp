@@ -8,6 +8,10 @@
 #include "problem/heuristic.h"
 #include "util/random.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327950288
+#endif
+
 // Perform all first available 1-swaps. This is nearly identical to
 // ExtendedSolution::AllFirst1Swap, except it has a tolerance.
 void Burer2002Solution::All1Swap(double tolerance) {

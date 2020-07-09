@@ -3,6 +3,7 @@
 #include <numpy/arrayobject.h>
 #include <stdlib.h>
 #include <time.h>
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include "heuristics/heuristic_factory.h"
@@ -144,16 +145,48 @@ static void Inst_dealloc(Inst* self) {
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
+// We opt for this verbose version of the PyTypeObject definition to
+// make the Visual C++ compiler happy; got the template from
+// https://docs.python.org/3/c-api/typeobj.html
 static PyTypeObject InstType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "_MQLib._Inst",
-    .tp_doc = "Instance wrapper",
-    .tp_basicsize = sizeof(Inst),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = Inst_new,
-    .tp_init = (initproc)Inst_init,
-    .tp_dealloc = (destructor)Inst_dealloc,
+    "_MQLib._Inst",                 /* tp_name */
+    sizeof(Inst),                   /* tp_basicsize */
+    0,                              /* tp_itemsize */
+    (destructor)Inst_dealloc,       /* tp_dealloc */
+    0,                              /* tp_vectorcall_offset */
+    0,                              /* tp_getattr */
+    0,                              /* tp_setattr */
+    0,                              /* tp_as_async */
+    0,                              /* tp_repr */
+    0,                              /* tp_as_number */
+    0,                              /* tp_as_sequence */
+    0,                              /* tp_as_mapping */
+    0,                              /* tp_hash */
+    0,                              /* tp_call */
+    0,                              /* tp_str */
+    0,                              /* tp_getattro */
+    0,                              /* tp_setattro */
+    0,                              /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,             /* tp_flags */
+    "Instance wrapper",             /* tp_doc */
+    0,                              /* tp_traverse */
+    0,                              /* tp_clear */
+    0,                              /* tp_richcompare */
+    0,                              /* tp_weaklistoffset */
+    0,                              /* tp_iter */
+    0,                              /* tp_iternext */
+    0,                              /* tp_methods */
+    0,                              /* tp_members */
+    0,                              /* tp_getset */
+    0,                              /* tp_base */
+    0,                              /* tp_dict */
+    0,                              /* tp_descr_get */
+    0,                              /* tp_descr_set */
+    0,                              /* tp_dictoffset */
+    (initproc)Inst_init,            /* tp_init */
+    0,                              /* tp_alloc */
+    Inst_new,                       /* tp_new */
 };
 
 // See https://stackoverflow.com/a/52732077/3093387 -- free our allocated
@@ -424,6 +457,7 @@ PyMethodDef method_table[] = {
 			       METH_VARARGS, "Get all heuristic names and descriptions"},
 			      {NULL, NULL, 0, NULL}
 };
+
 PyModuleDef _MQLib_module = {
 			     PyModuleDef_HEAD_INIT,
 			     "_MQLib",
@@ -431,6 +465,7 @@ PyModuleDef _MQLib_module = {
 			     -1,
 			     method_table
 };
+
 
 PyMODINIT_FUNC PyInit__MQLib(void) {
   PyObject *m;
