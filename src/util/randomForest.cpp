@@ -57,7 +57,7 @@ RandomForest::RandomForest(const std::string& filename) {
   }
 }
 
-double RandomForest::Predict(const std::vector<double>& vars) {
+double RandomForest::Predict(const std::vector<double>& vars) const {
   if (vars.size() != _nvar) {
     std::cout << "Wrong number of variables in RandomForest::Predict" <<
       std::endl;

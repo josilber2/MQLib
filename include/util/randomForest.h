@@ -12,7 +12,7 @@ class RandomForest {
 
   // Predict the probability of true from the random forest given the passed
   // independent variable values.
-  double Predict(const std::vector<double>& vars);
+  double Predict(const std::vector<double>& vars) const;
 
  private:
   // Number of trees in random forest

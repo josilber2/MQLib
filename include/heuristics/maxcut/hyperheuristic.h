@@ -1,15 +1,33 @@
 #ifndef HEURISTICS_MAXCUT_HYPERHEURISTIC_H_
 #define HEURISTICS_MAXCUT_HYPERHEURISTIC_H_
 
+#include <map>
 #include <string>
 #include "problem/max_cut_heuristic.h"
 #include "problem/qubo_heuristic.h"
+#include "util/randomForest.h"
+
+class RandomForestMap {
+ public:
+  RandomForestMap(const std::string& hhdata);
+
+  // For a given code, return the random forest if we have it and null otherwise
+  RandomForest* getData(const std::string& code);
+  
+ private:
+  // Does the indicated file name point to an accessible file?
+  bool FileExists(const std::string& filename);
+
+  // For every random forest we store, map the relevant heuristic code to
+  // the parsed random forest
+  std::map<std::string, RandomForest> mapping_;
+};
 
 class MaxCutHyperheuristic : public MaxCutHeuristic {
  public:
   MaxCutHyperheuristic(const MaxCutInstance&mi, double runtime_limit,
                        bool validation, MaxCutCallback *mc, int seed,
-                       std::string* selected, const std::string& hhdata);
+                       std::string* selected, RandomForestMap& rfm);
 
  private:
   enum Prob {
@@ -17,14 +35,11 @@ class MaxCutHyperheuristic : public MaxCutHeuristic {
     QUBO
   };
 
-  // Does the indicated file name point to an accessible file?
-  bool FileExists(const std::string& filename);
-
   // Determine if the associated random forest model outperforms the best
   // identified so far, using a streaming algorithm to break ties randomly.
   void UpdateBestModel(std::string code, Prob problem,
                        const std::vector<double>& metrics,
-		       const std::string& hhdata,
+		       const RandomForest& rf,
                        double* bestProbability, Prob* bestProblem,
                        std::string* bestCode, int* numBest);
 };

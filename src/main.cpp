@@ -304,8 +304,9 @@ int main(int argc, const char* argv[]) {
         mi = new MaxCutInstance(*qi);
       }
       std::string selected;
+      RandomForestMap rfm("hhdata");
       mh = new MaxCutHyperheuristic(*mi, runtime_limit, validation, NULL, seed,
-                                    &selected, "hhdata");
+                                    &selected, rfm);
       heuristic = mh;
       heuristic_code = "HH_" + selected;
     }

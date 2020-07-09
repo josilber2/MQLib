@@ -38,8 +38,6 @@ static PyObject* Inst_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
 // Load an instance from a file
 static int Inst_init(Inst* self, PyObject* args) {
   const char *itype;
-  int iclass;  // 1 -- file; 2 -- sparse representation
-  const char *fname;
   PyObject* left;
   PyObject* right;
   PyObject* data;
@@ -47,8 +45,7 @@ static int Inst_init(Inst* self, PyObject* args) {
   PyArrayObject* aright;
   PyArrayObject* adata;
   int n;  // Number of nodes / variables
-  if (!PyArg_ParseTuple(args, "sisOOOi", &itype, &iclass, &fname, &left,
-			&right, &data, &n)) {
+  if (!PyArg_ParseTuple(args, "sOOOi", &itype, &left, &right, &data, &n)) {
     return -1;
   }
   if (strcmp(itype, "M") && strcmp(itype, "Q")) {
@@ -56,78 +53,68 @@ static int Inst_init(Inst* self, PyObject* args) {
     return -1;
   }
   self->itype = itype[0];
-  if (iclass == 1) {
-    if (self->itype == 'M') {
-      self->mi = new MaxCutInstance(fname);
-    } else if (self->itype == 'Q') {
-      self->qi = new QUBOInstance(fname);
-    }
-  } else if (iclass == 2) {
-    // Load the tuple representation of sparse matrix -- left < right are the
-    // arrays that indicate each from/to pairing and data contains their weight.
-    if (!PyArray_Check(left) || !PyArray_Check(right) || !PyArray_Check(data)) {
-      PyErr_Format(PyExc_TypeError, "unexpected object type -- want numpy array");
-      return -1;
-    }
-    if (n <= 0) {
-      PyErr_Format(PyExc_ValueError, "invalid instance size %d", n);
-      return -1;
-    }
-    aleft = (PyArrayObject*)left;
-    aright = (PyArrayObject*)right;
-    adata = (PyArrayObject*)data;
-    if (PyArray_SIZE(aleft) != PyArray_SIZE(aright) ||
-	PyArray_SIZE(aleft) != PyArray_SIZE(adata)) {
-      PyErr_Format(PyExc_ValueError, "sparse rep arrays should be of same length");
-      return -1;
-    }
 
-    // Loop in lockstep through the three arrays to build an edgeList
-    // object, which is the expected data input format for building instances.
-    PyArray_Descr *dtype_i = PyArray_DescrFromType(NPY_INT32);
-    PyArray_Descr *dtype_d = PyArray_DescrFromType(NPY_DOUBLE);
-    NpyIter *iter_l = NpyIter_New(aleft, NPY_ITER_READONLY, NPY_KEEPORDER,
-				  NPY_NO_CASTING, dtype_i);
-    NpyIter *iter_r = NpyIter_New(aright, NPY_ITER_READONLY, NPY_KEEPORDER,
-				  NPY_NO_CASTING, dtype_i);
-    NpyIter *iter_d = NpyIter_New(adata, NPY_ITER_READONLY, NPY_KEEPORDER,
-				  NPY_NO_CASTING, dtype_d);
-    NpyIter_IterNextFunc *iternext_l = NpyIter_GetIterNext(iter_l, NULL);
-    NpyIter_IterNextFunc *iternext_r = NpyIter_GetIterNext(iter_r, NULL);
-    NpyIter_IterNextFunc *iternext_d = NpyIter_GetIterNext(iter_d, NULL);
-    int** dataptr_l = (int**)NpyIter_GetDataPtrArray(iter_l);
-    int** dataptr_r = (int**)NpyIter_GetDataPtrArray(iter_r);
-    double** dataptr_d = (double**)NpyIter_GetDataPtrArray(iter_d);
-    std::vector<Instance::InstanceTuple> edgeList; // Sparse representation
-    std::vector<double> mainDiag(n, 0.0);  // Main diagonal (QUBO instances only)
-    do {
-      if (**dataptr_l < 1 || **dataptr_l > n || **dataptr_r < 1 || **dataptr_r > n) {
-	PyErr_Format(PyExc_ValueError,
-		     "Expect 1-indexed values; got link %d-^d in instance of size %d",
-		     **dataptr_l, **dataptr_r, n);
-	NpyIter_Deallocate(iter_l);
-	NpyIter_Deallocate(iter_r);
-	NpyIter_Deallocate(iter_d);
-	return -1;
-      } else if (self->itype == 'Q' && **dataptr_l == **dataptr_r) {
-	mainDiag[**dataptr_l-1] = **dataptr_d;
-      } else if (**dataptr_l != **dataptr_r) {
-	edgeList.push_back(Instance::InstanceTuple(std::pair<int, int>(**dataptr_l, **dataptr_r), **dataptr_d));  // 1-indexed sparse rep
-      }
-    } while (iternext_l(iter_l) && iternext_r(iter_r) && iternext_d(iter_d));
-    NpyIter_Deallocate(iter_l);
-    NpyIter_Deallocate(iter_r);
-    NpyIter_Deallocate(iter_d);
-
-    // Build the instance
-    if (self->itype == 'M') {
-      self->mi = new MaxCutInstance(edgeList, n);
-    } else {
-      self->qi = new QUBOInstance(edgeList, mainDiag, n);
-    }
-  } else {
-    PyErr_Format(PyExc_ValueError, "invalid instance class %d", iclass);
+  // Load the tuple representation of sparse matrix -- left < right are the
+  // arrays that indicate each from/to pairing and data contains their weight.
+  if (!PyArray_Check(left) || !PyArray_Check(right) || !PyArray_Check(data)) {
+    PyErr_Format(PyExc_TypeError, "unexpected object type -- want numpy array");
     return -1;
+  }
+  if (n <= 0) {
+    PyErr_Format(PyExc_ValueError, "invalid instance size %d", n);
+    return -1;
+  }
+  aleft = (PyArrayObject*)left;
+  aright = (PyArrayObject*)right;
+  adata = (PyArrayObject*)data;
+  if (PyArray_SIZE(aleft) != PyArray_SIZE(aright) ||
+      PyArray_SIZE(aleft) != PyArray_SIZE(adata)) {
+    PyErr_Format(PyExc_ValueError, "sparse rep arrays should be of same length");
+    return -1;
+  }
+
+  // Loop in lockstep through the three arrays to build an edgeList
+  // object, which is the expected data input format for building instances.
+  PyArray_Descr *dtype_i = PyArray_DescrFromType(NPY_INT32);
+  PyArray_Descr *dtype_d = PyArray_DescrFromType(NPY_DOUBLE);
+  NpyIter *iter_l = NpyIter_New(aleft, NPY_ITER_READONLY, NPY_KEEPORDER,
+				NPY_NO_CASTING, dtype_i);
+  NpyIter *iter_r = NpyIter_New(aright, NPY_ITER_READONLY, NPY_KEEPORDER,
+				NPY_NO_CASTING, dtype_i);
+  NpyIter *iter_d = NpyIter_New(adata, NPY_ITER_READONLY, NPY_KEEPORDER,
+				NPY_NO_CASTING, dtype_d);
+  NpyIter_IterNextFunc *iternext_l = NpyIter_GetIterNext(iter_l, NULL);
+  NpyIter_IterNextFunc *iternext_r = NpyIter_GetIterNext(iter_r, NULL);
+  NpyIter_IterNextFunc *iternext_d = NpyIter_GetIterNext(iter_d, NULL);
+  int** dataptr_l = (int**)NpyIter_GetDataPtrArray(iter_l);
+  int** dataptr_r = (int**)NpyIter_GetDataPtrArray(iter_r);
+  double** dataptr_d = (double**)NpyIter_GetDataPtrArray(iter_d);
+  std::vector<Instance::InstanceTuple> edgeList; // Sparse representation
+  std::vector<double> mainDiag(n, 0.0);  // Main diagonal (QUBO instances only)
+  do {
+    if (**dataptr_l < 1 || **dataptr_l > n || **dataptr_r < 1 || **dataptr_r > n) {
+      PyErr_Format(PyExc_ValueError,
+		   "Expect 1-indexed values; got link %d-%d in instance of size %d",
+		   **dataptr_l, **dataptr_r, n);
+      NpyIter_Deallocate(iter_l);
+      NpyIter_Deallocate(iter_r);
+      NpyIter_Deallocate(iter_d);
+      return -1;
+    } else if (self->itype == 'Q' && **dataptr_l == **dataptr_r) {
+      mainDiag[**dataptr_l-1] = **dataptr_d;
+    } else if (**dataptr_l != **dataptr_r) {
+      edgeList.push_back(Instance::InstanceTuple(std::pair<int, int>(**dataptr_l, **dataptr_r), **dataptr_d));  // 1-indexed sparse rep
+    }
+  } while (iternext_l(iter_l) && iternext_r(iter_r) && iternext_d(iter_d));
+  NpyIter_Deallocate(iter_l);
+  NpyIter_Deallocate(iter_r);
+  NpyIter_Deallocate(iter_d);
+
+  // Build the instance
+  if (self->itype == 'M') {
+    self->mi = new MaxCutInstance(edgeList, n);
+  } else {
+    self->qi = new QUBOInstance(edgeList, mainDiag, n);
   }
   return 0;
 }
@@ -189,6 +176,85 @@ static PyTypeObject InstType = {
     Inst_new,                       /* tp_new */
 };
 
+// RandomForestMap wrapper
+typedef struct {
+  PyObject_HEAD
+  RandomForestMap *rfm;
+} HHData;
+
+// Create a HHData object with a null pointer
+static PyObject* HHData_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
+  HHData *self;
+  self = (HHData*)type->tp_alloc(type, 0);
+  if (self != NULL) {
+    self->rfm = NULL;
+  }
+  return (PyObject*)self;
+}
+
+// Load a RandomForestMap from a file
+static int HHData_init(HHData* self, PyObject* args) {
+  const char *datloc;
+  if (!PyArg_ParseTuple(args, "s", &datloc)) {
+    return -1;
+  }
+  self->rfm = new RandomForestMap(datloc);
+  return 0;
+}
+
+// Clean up allocated memory for our RandomForestMap
+static void HHData_dealloc(HHData* self) {
+  if (self->rfm != NULL) {
+    delete self->rfm;
+    self->rfm = NULL;
+  }
+  Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+// We opt for this verbose version of the PyTypeObject definition to
+// make the Visual C++ compiler happy; got the template from
+// https://docs.python.org/3/c-api/typeobj.html
+static PyTypeObject HHDataType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "_MQLib._HHData",               /* tp_name */
+    sizeof(HHData),                 /* tp_basicsize */
+    0,                              /* tp_itemsize */
+    (destructor)HHData_dealloc,     /* tp_dealloc */
+    0,                              /* tp_vectorcall_offset */
+    0,                              /* tp_getattr */
+    0,                              /* tp_setattr */
+    0,                              /* tp_as_async */
+    0,                              /* tp_repr */
+    0,                              /* tp_as_number */
+    0,                              /* tp_as_sequence */
+    0,                              /* tp_as_mapping */
+    0,                              /* tp_hash */
+    0,                              /* tp_call */
+    0,                              /* tp_str */
+    0,                              /* tp_getattro */
+    0,                              /* tp_setattro */
+    0,                              /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,             /* tp_flags */
+    "RandomForestMap wrapper",      /* tp_doc */
+    0,                              /* tp_traverse */
+    0,                              /* tp_clear */
+    0,                              /* tp_richcompare */
+    0,                              /* tp_weaklistoffset */
+    0,                              /* tp_iter */
+    0,                              /* tp_iternext */
+    0,                              /* tp_methods */
+    0,                              /* tp_members */
+    0,                              /* tp_getset */
+    0,                              /* tp_base */
+    0,                              /* tp_dict */
+    0,                              /* tp_descr_get */
+    0,                              /* tp_descr_set */
+    0,                              /* tp_dictoffset */
+    (initproc)HHData_init,          /* tp_init */
+    0,                              /* tp_alloc */
+    HHData_new,                     /* tp_new */
+};
+
 // See https://stackoverflow.com/a/52732077/3093387 -- free our allocated
 // memory once the parent numpy array is deleted
 void capsule_cleanup(PyObject *capsule) {
@@ -200,9 +266,9 @@ void capsule_cleanup(PyObject *capsule) {
 static PyObject* runHeuristic(PyObject *self, PyObject *args) {
   // Load arguments
   PyObject *_inst;
+  PyObject *_hhdata;
   Inst *inst;
   const char *hname;  // Heuristic name
-  const char *hhdata;  // Location of hyperheuristic data
   MaxCutHeuristic *mh = NULL;
   QUBOHeuristic *qh = NULL;
   Heuristic *heuristic = NULL;
@@ -212,7 +278,8 @@ static PyObject* runHeuristic(PyObject *self, PyObject *args) {
   std::string selected;  // If hyperheuristic is run, what heuristic was selected?
   int n;  // Instance size
   
-  if (!PyArg_ParseTuple(args, "sOdis", &hname, &_inst, &runtime, &seed, &hhdata)) {
+  if (!PyArg_ParseTuple(args, "sOdiO", &hname, &_inst, &runtime, &seed,
+			&_hhdata)) {
     return NULL;
   }
   selected = hname;
@@ -253,11 +320,21 @@ static PyObject* runHeuristic(PyObject *self, PyObject *args) {
     qh = factory.RunQUBOHeuristic(hname, *(inst->qi), runtime, false, NULL);
     heuristic = qh;
   } else if (!strcmp(hname, "HH")) {
+    if (!PyObject_IsInstance(_hhdata, (PyObject*)&HHDataType)) {
+      PyErr_Format(PyExc_TypeError, "_HHData expected; got %s", _inst->ob_type->tp_name);
+      return NULL;
+    }
+    HHData *hhdata = (HHData*)_hhdata;
+    if (hhdata->rfm == NULL) {
+      PyErr_Format(PyExc_ValueError, "Malformed _HHData passed");
+      return NULL;
+    }
+    
     if (!inst->mi) {
       inst->mi = new MaxCutInstance(*(inst->qi));
     }
     mh = new MaxCutHyperheuristic(*(inst->mi), runtime, false, NULL, seed,
-				  &selected, hhdata);
+				  &selected, *(hhdata->rfm));
     heuristic = mh;
   } else {
     PyErr_Format(PyExc_ValueError, "Illegal heuristic code %s", hname);
@@ -448,14 +525,14 @@ static PyObject* getHeuristics(PyObject *self, PyObject *args) {
   return Py_BuildValue("NNNN", MNlist, MDlist, QNlist, QDlist);
 }
 
-PyMethodDef method_table[] = {
-			      {"runHeuristic", (PyCFunction)runHeuristic, METH_VARARGS,
-			       "Given a heuristic and instance, do the run"},
-			      {"instanceMetrics", (PyCFunction)instanceMetrics,
-			       METH_VARARGS, "Get Max-Cut metrics for an instance"},
-			      {"getHeuristics", (PyCFunction)getHeuristics,
-			       METH_VARARGS, "Get all heuristic names and descriptions"},
-			      {NULL, NULL, 0, NULL}
+PyMethodDef method_table[] =
+  {{"runHeuristic", (PyCFunction)runHeuristic, METH_VARARGS,
+    "Given a heuristic and instance, do the run"},
+   {"instanceMetrics", (PyCFunction)instanceMetrics, METH_VARARGS,
+    "Get Max-Cut metrics for an instance"},
+   {"getHeuristics", (PyCFunction)getHeuristics, METH_VARARGS,
+    "Get all heuristic names and descriptions"},
+   {NULL, NULL, 0, NULL}
 };
 
 PyModuleDef _MQLib_module = {
@@ -469,7 +546,7 @@ PyModuleDef _MQLib_module = {
 
 PyMODINIT_FUNC PyInit__MQLib(void) {
   PyObject *m;
-  if (PyType_Ready(&InstType) < 0)
+  if (PyType_Ready(&InstType) < 0 || PyType_Ready(&HHDataType) < 0)
     return NULL;
 
   m = PyModule_Create(&_MQLib_module);
@@ -478,6 +555,14 @@ PyMODINIT_FUNC PyInit__MQLib(void) {
 
   Py_INCREF(&InstType);
   if (PyModule_AddObject(m, "_Inst", (PyObject*)&InstType) < 0) {
+    Py_DECREF(&InstType);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  Py_INCREF(&HHDataType);
+  if (PyModule_AddObject(m, "_HHData", (PyObject*)&HHDataType) < 0) {
+    Py_DECREF(&HHDataType);
     Py_DECREF(&InstType);
     Py_DECREF(m);
     return NULL;

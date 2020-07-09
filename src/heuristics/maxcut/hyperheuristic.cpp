@@ -10,7 +10,7 @@
 #include "util/random.h"
 #include "util/randomForest.h"
 
-bool MaxCutHyperheuristic::FileExists(const std::string& filename) {
+bool RandomForestMap::FileExists(const std::string& filename) {
   FILE *f = fopen(filename.c_str(), "r");
   if (f) {
     fclose(f);
@@ -20,33 +20,60 @@ bool MaxCutHyperheuristic::FileExists(const std::string& filename) {
   }
 }
 
+RandomForestMap::RandomForestMap(const std::string& hhdata) {
+  HeuristicFactory factory;
+  std::vector<std::string> codes;
+  factory.MaxCutHeuristicCodes(&codes);
+  for (int i=0; i < (int)codes.size(); ++i) {
+    std::ostringstream fname;
+    fname << hhdata << "/" << codes[i] << ".rf";
+    std::string filename = fname.str();
+    if (FileExists(filename)) {
+      mapping_.insert(std::make_pair<std::string, RandomForest>((std::string)codes[i], RandomForest(filename)));
+    }
+  }
+  factory.QUBOHeuristicCodes(&codes);
+  for (int i=0; i < (int)codes.size(); ++i) {
+    std::ostringstream fname;
+    fname << hhdata << "/" << codes[i] << ".rf";
+    std::string filename = fname.str();
+    if (FileExists(filename)) {
+      mapping_.insert(std::make_pair<std::string, RandomForest>((std::string)codes[i], RandomForest(filename)));
+    }
+  }
+}
+
+RandomForest* RandomForestMap::getData(const std::string& code) {
+  std::map<std::string, RandomForest>::iterator it;
+  it = mapping_.find(code);
+  if (it != mapping_.end()) {
+    return &it->second;
+  } else {
+    return NULL;
+  }
+}
+
 void MaxCutHyperheuristic::UpdateBestModel(std::string code, Prob problem,
                                            const std::vector<double>& metrics,
-					   const std::string& hhdata, 
+					   const RandomForest &rf,
                                            double* bestProbability,
                                            Prob* bestProblem,
                                            std::string* bestCode,
                                            int* numBest) {
-  std::ostringstream fname;
-  fname << hhdata << "/" << code << ".rf";
-  std::string filename = fname.str();
-  if (FileExists(filename)) {
-    RandomForest rf(filename);
-    double probability = rf.Predict(metrics);
-    if (probability > *bestProbability) {
-      // New best
-      *bestProbability = probability;
+  double probability = rf.Predict(metrics);
+  if (probability > *bestProbability) {
+    // New best
+    *bestProbability = probability;
+    *bestProblem = problem;
+    *bestCode = code;
+    *numBest = 1;
+  } else if (probability == *bestProbability) {
+    if (Random::RandInt(0, *numBest) == *numBest) {
+      // Tied the best and selected by streaming algorithm
       *bestProblem = problem;
       *bestCode = code;
-      *numBest = 1;
-    } else if (probability == *bestProbability) {
-      if (Random::RandInt(0, *numBest) == *numBest) {
-	// Tied the best and selected by streaming algorithm
-	*bestProblem = problem;
-	*bestCode = code;
-      }
-      ++(*numBest);
     }
+    ++(*numBest);
   }
 }
 
@@ -96,7 +123,7 @@ MaxCutHyperheuristic::MaxCutHyperheuristic(const MaxCutInstance&mi,
                                            bool validation,
                                            MaxCutCallback *mc, int seed,
                                            std::string* selected,
-					   const std::string& hhdata) :
+					   RandomForestMap& rfm) :
   MaxCutHeuristic(mi, runtime_limit, validation, mc) {
 
   // Step 1: Calculate graph metrics for this instance.
@@ -116,15 +143,21 @@ MaxCutHyperheuristic::MaxCutHyperheuristic(const MaxCutInstance&mi,
   std::vector<std::string> codes;
   factory.MaxCutHeuristicCodes(&codes);
   for (int i=0; i < codes.size(); ++i) {
-    UpdateBestModel(codes[i], MaxCut, metrics, hhdata, &bestProbability,
-		    &bestProblem, &bestCode, &numBest);
+    RandomForest *rf = rfm.getData(codes[i]);
+    if (rf) {
+      UpdateBestModel(codes[i], MaxCut, metrics, *rf,
+		      &bestProbability, &bestProblem, &bestCode, &numBest);
+    }
   }
 
   // Check the QUBO heuristics
   factory.QUBOHeuristicCodes(&codes);
   for (int i=0; i < codes.size(); ++i) {
-    UpdateBestModel(codes[i], QUBO, metrics, hhdata, &bestProbability,
-		    &bestProblem, &bestCode, &numBest);
+    RandomForest *rf = rfm.getData(codes[i]);
+    if (rf) {
+      UpdateBestModel(codes[i], QUBO, metrics, *rf,
+		      &bestProbability, &bestProblem, &bestCode, &numBest);
+    }
   }
   if (selected) {
     *selected = bestCode;
