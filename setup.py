@@ -8,7 +8,7 @@ and Quadratic Unconstrained Binary Optimization (QUBO). Also includes a
 hyperheuristic, which uses machine learning to predict the best-performing
 heuristic for a given problem instance and then runs that heuristic.
 
-This library and the related systematic heuristic evaluation strategy are described in [the paper](paper/SECM_final.pdf). To cite the MQLib, please use:
+This library and the related systematic heuristic evaluation strategy are described in [the paper](https://github.com/MQLib/MQLib/blob/master/paper/SECM_final.pdf). To cite the MQLib, please use:
 ```
 @article{DunningEtAl2018,
   title={What Works Best When? A Systematic Evaluation of Heuristics for Max-Cut and {QUBO}},
