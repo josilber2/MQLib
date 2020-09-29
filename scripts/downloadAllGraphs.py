@@ -6,6 +6,10 @@ if len(sys.argv) != 2:
     print("Usage: python downloadAllGraphs.py outputFolder")
     exit(1)
 
+# Create folder if it does not exist
+if not os.path.isdir(sys.argv[1]):
+    os.mkdir(sys.argv[1])
+    
 conn = boto.connect_s3(anon=True)
 b = conn.get_bucket("mqlibinstances", validate=False)
 for k in b.list():
